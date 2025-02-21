@@ -1,67 +1,40 @@
 import redis
-from typing import Dict, List, Optional, Any
+# from typing import Dict, List, Optional, Any
 from .consistent_hash import ConsistentHash
 from .config import settings
 
 class RedisManager:
     def __init__(self):
         """Initialize Redis connection pools and consistent hashing"""
-        self.connection_pools: Dict[str, redis.ConnectionPool] = {}
-        self.redis_clients: Dict[str, redis.Redis] = {}
+        self.connection_pools = {}
+        self.redis_clients = {}
         
-        # Parse Redis nodes from comma-separated string
         redis_nodes = [node.strip() for node in settings.REDIS_NODES.split(",") if node.strip()]
         self.consistent_hash = ConsistentHash(redis_nodes, settings.VIRTUAL_NODES)
         
-        # TODO: Initialize connection pools for each Redis node
-        # 1. Create connection pools for each Redis node
-        # 2. Initialize Redis clients
-        pass
-
-    async def get_connection(self, key: str) -> redis.Redis:
-        """
-        Get Redis connection for the given key using consistent hashing
-        
-        Args:
-            key: The key to determine which Redis node to use
-            
-        Returns:
-            Redis client for the appropriate node
-        """
-        # TODO: Implement getting the appropriate Redis connection
-        # 1. Use consistent hashing to determine which node should handle this key
-        # 2. Return the Redis client for that node
-        pass
-
-    async def increment(self, key: str, amount: int = 1) -> int:
-        """
-        Increment a counter in Redis
-        
-        Args:
-            key: The key to increment
-            amount: Amount to increment by
-            
-        Returns:
-            New value of the counter
-        """
-        # TODO: Implement incrementing a counter
-        # 1. Get the appropriate Redis connection
-        # 2. Increment the counter
-        # 3. Handle potential failures and retries
+        for node in redis_nodes:
+            try:
+                self.connection_pools[node] = redis.ConnectionPool(host=node, port=6379, decode_responses=True)
+                self.redis_clients[node] = redis.Redis(connection_pool=self.connection_pools[node])
+            except redis.ConnectionError as e:
+                print(f"Error connecting to Redis node {node}: {e}")
+    
+    def get_connection(self, key: str):
+        """Get Redis connection for the given key using consistent hashing"""
+        node = self.consistent_hash.get_node(key)
+        return self.redis_clients.get(node)
+    
+    def increment(self, key: str, amount: int = 1) -> int:
+        """Increment a counter in Redis"""
+        client = self.get_connection(key)
+        if client:
+            return client.incrby(key, amount)
         return 0
-
-    async def get(self, key: str) -> Optional[int]:
-        """
-        Get value for a key from Redis
-        
-        Args:
-            key: The key to get
-            
-        Returns:
-            Value of the key or None if not found
-        """
-        # TODO: Implement getting a value
-        # 1. Get the appropriate Redis connection
-        # 2. Retrieve the value
-        # 3. Handle potential failures and retries
-        return None
+    
+    def get(self, key: str):
+        """Get value for a key from Redis"""
+        client = self.get_connection(key)
+        if client:
+            value = client.get(key)
+            return int(value) if value else 0
+        return 0
