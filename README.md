@@ -21,6 +21,8 @@ The system is designed with the following components:
    ```
 4. The API will be available at `http://localhost:8000`
 
+5. Swagger Docs will be available at : `  http://localhost:8000/docs `
+
 ## Implementation Tasks
 
 The codebase contains TODOs in various files that need to be implemented:
@@ -46,10 +48,6 @@ The codebase contains TODOs in various files that need to be implemented:
 - `GET /api/v1/counter/visits/{page_id}` : Get visit count
 
 ## Testing
-
-The entire system can be run locally with a single command using Docker Compose : `docker-compose up --build`
-
-Swagger Docs are available at : `  http://localhost:8000/docs `
 
 You can test the API using curl or any HTTP client:
 
