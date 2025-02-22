@@ -42,19 +42,23 @@ The codebase contains TODOs in various files that need to be implemented:
 
 ## API Endpoints
 
-- `POST /visit/{page_id}`: Record a visit
-- `GET /visits/{page_id}`: Get visit count
+- `POST /api/v1/counter/visit/{page_id}` : Record a visit
+- `GET /api/v1/counter/visits/{page_id}` : Get visit count
 
 ## Testing
+
+The entire system can be run locally with a single command using Docker Compose : `docker-compose up --build`
+
+Swagger Docs are available at : `  http://localhost:8000/docs `
 
 You can test the API using curl or any HTTP client:
 
 ```bash
 # Record a visit
-curl -X POST http://localhost:8000/visit/123
+curl -X POST http://localhost:8000/api/v1/counter/visit/123
 
 # Get visit count
-curl http://localhost:8000/visits/123
+curl http://localhost:8000/api/v1/counter/visits/123
 ```
 
 ## File Structure
