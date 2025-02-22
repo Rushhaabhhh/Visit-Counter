@@ -1,5 +1,6 @@
 import asyncio
 import redis
+import os
 from typing import Dict, Optional
 from .consistent_hash import ConsistentHash
 
@@ -10,10 +11,10 @@ class RedisManager:
         self.redis_clients: Dict[str, redis.Redis] = {}
         
         # Use Docker service names instead of localhost
-        redis_nodes = [
-            "redis://redis1:6379",  # First Redis instance
-            "redis://redis2:6380",  # Second Redis instance
-            "redis://redis3:6381"
+        redis_nodes = os.getenv("REDIS_NODES", "").split(",") if os.getenv("REDIS_NODES") else [
+            "redis://redis1:6379",
+            "redis://redis2:6379",
+            "redis://redis3:6379"
         ]
         self.consistent_hash = ConsistentHash(redis_nodes, 100)
         
@@ -29,10 +30,11 @@ class RedisManager:
                 )
                 self.redis_clients[node] = redis.Redis(
                     connection_pool=self.connection_pools[node],
-                    decode_responses=True  # Automatically decode response bytes to str
+                    decode_responses=True
                 )
             except redis.RedisError as e:
-                raise Exception(f"Failed to initialize Redis connection for {node}: {str(e)}")
+                print(f"Warning: Failed to connect to {node}: {str(e)}")
+
     
     def get_connection(self, key: str) -> redis.Redis:
         """
@@ -50,45 +52,25 @@ class RedisManager:
         return self.redis_clients[node]
     
     async def increment(self, key: str, amount: int = 1) -> int:
-        """
-        Increment a counter in Redis
-
-        Args:
-            key: The key to increment
-            amount: Amount to increment by
-            
-        Returns:
-            New value of the counter
-        """
         redis_client = self.get_connection(key)
         retries = 3
-        
         for attempt in range(retries):
             try:
-                return redis_client.incrby(key, amount)
+                return await asyncio.to_thread(redis_client.incrby, key, amount)
             except redis.RedisError as e:
-                if attempt == retries - 1:  # Last attempt
+                if attempt == retries - 1:
                     raise Exception(f"Failed to increment key {key}: {str(e)}")
-                await asyncio.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                await asyncio.sleep(0.1 * (attempt + 1))
+
     
     async def get(self, key: str) -> Optional[int]:
-        """
-        Get value for a key from Redis
-
-        Args:
-            key: The key to get
-            
-        Returns:
-            Value of the key or None if not found
-        """
         redis_client = self.get_connection(key)
         retries = 3
-        
         for attempt in range(retries):
             try:
-                value = redis_client.get(key)
+                value = await asyncio.to_thread(redis_client.get, key)
                 return int(value) if value is not None else None
             except redis.RedisError as e:
-                if attempt == retries - 1:  # Last attempt
+                if attempt == retries - 1:
                     raise Exception(f"Failed to get key {key}: {str(e)}")
-                await asyncio.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                await asyncio.sleep(0.1 * (attempt + 1))

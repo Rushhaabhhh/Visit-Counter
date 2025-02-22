@@ -14,7 +14,8 @@ services:
       - redis3
 
   redis1:
-    image: redis:7
+    image: redis:latest
+    restart: always
     ports:
       - "6379:6379"
     volumes:
@@ -22,7 +23,8 @@ services:
     command: redis-server --appendonly yes
 
   redis2:
-    image: redis:7
+    image: redis:latest
+    restart: always
     ports:
       - "6380:6379"
     volumes:
@@ -30,7 +32,8 @@ services:
     command: redis-server --appendonly yes
 
   redis3:
-    image: redis:7
+    image: redis:latest
+    restart: always
     ports:
       - "6381:6379"
     volumes:
